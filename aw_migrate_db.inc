@@ -118,9 +118,21 @@ $result->fields('a_a', array('source', 'target', 'idx'))
          ->condition('source', $current_row->oid)
          ->condition('type', 41)
          ->execute();
+  
        if ($result) {
-         foreach ($result as $row) {      
-           $articles[] = $row->target.'('.$row->source.'|'.$row->idx.')';
+         foreach ($result as $row) {
+           
+           $query_files = db_select('aw_files', 'aw_f')
+              ->fields('aw_f', array('file'))
+              ->condition('id', $row->target)
+              ->execute();
+            
+            foreach ($query_files as $query_file) {
+              $file = $query_file->file;
+            }
+           
+            $articles[] = $row->target.'('.$file.')';
+           
          }    
         $current_row->content_filtered .= implode('|', $articles);
        }
