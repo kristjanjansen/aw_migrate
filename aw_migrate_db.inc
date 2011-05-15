@@ -102,17 +102,7 @@ class AWDocDBMigration extends Migration {
 
      $current_row->content_filtered = filter_xss($current_row->content_filtered, $allowed_tags);
 
-/*
-
-$result = db_select('aw_aliases', 'a_a');
-$result->join('aw_files', 'a_f', 'a_a.target = a_f.id');
-$result->fields('a_a', array('source', 'target', 'idx'))
-  ->fields('a_f', array('id'))
-  ->condition('a_a.source', $current_row->oid)
-  ->condition('a_a.type', 41)
-  ->execute();
-*/
-     $articles = array();
+     $files = array();
        $result = db_select('aw_aliases', 'aw_a')
          ->fields('aw_a', array('source', 'target', 'idx'))
          ->condition('source', $current_row->oid)
@@ -131,11 +121,43 @@ $result->fields('a_a', array('source', 'target', 'idx'))
               $file = $query_file->file;
             }
            
-            $articles[] = $row->target.'('.$file.')';
+            $files[] = $row->target.'('.$file.')';
            
          }    
-        $current_row->content_filtered .= implode('|', $articles);
+        $current_row->content_filtered .= implode('|', $files);
        }
+    
+    // Images 
+    
+    
+    $files = array();
+      $result = db_select('aw_aliases', 'aw_a')
+        ->fields('aw_a', array('source', 'target', 'idx'))
+        ->condition('source', $current_row->oid)
+        ->condition('type', 6)
+        ->execute();
+ 
+      if ($result) {
+        foreach ($result as $row) {
+          
+          $query_files = db_select('aw_images', 'aw_i')
+             ->fields('aw_i', array('file'))
+             ->condition('id', $row->target)
+             ->execute();
+           
+           foreach ($query_files as $query_file) {
+             $file = $query_file->file;
+           }
+          
+           $files[] = $row->target.'['.$file.']';
+          
+        }    
+       $current_row->content_filtered .= implode('|', $files);
+      }
+    
+// INSERT INTO `aliases` (`id`, `source`, `target`, `type`, `data`, `idx`, `relobj_id`, `reltype`, `pri`, `cached`) VALUES
+       
+       
 
   }
 
