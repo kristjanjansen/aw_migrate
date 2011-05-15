@@ -36,6 +36,7 @@ class AWDocDBMigration extends Migration {
     $current_row->content_filtered =  $current_row->content; 
     
     $preg_replace_map = array(
+      '#\s\s+#' => ' ',
       '#<span style=\"font-weight: bold;\">(.*)</span>#e' => "('<strong>$1</strong>')",
       '#<!--(.*)-->#e' => '',
       '#<strong>([\s]+)</strong>#e' => '',
@@ -58,10 +59,6 @@ class AWDocDBMigration extends Migration {
  
    
     $replace_map = array(
-      '    ' => ' ',
-      '   ' => ' ',
-      '  ' => ' ',
-      ' ' => ' ',
       '<b>' => '<strong>',
       '</b>' => '</strong>',
       '&nbsp;' => '',
@@ -120,11 +117,11 @@ class AWDocDBMigration extends Migration {
             foreach ($query_files as $query_file) {
               $file = $query_file->file;
             }
-           
-            $files[] = $row->target.'('.$file.')';
-           
+                   
+            $files[] = _aw_migrate_convert_file_path($file, $row->target, 'file', 'http://www.vonkrahl.ee');
+         
          }    
-        $current_row->content_filtered .= implode('|', $files);
+        $current_row->content_filtered .= implode('<br />', $files);
        }
     
     // Images 
@@ -148,20 +145,36 @@ class AWDocDBMigration extends Migration {
            foreach ($query_files as $query_file) {
              $file = $query_file->file;
            }
+        
+           $files[] = _aw_migrate_convert_file_path($file, $row->target, 'image', 'http://www.vonkrahl.ee');
           
-           $files[] = $row->target.'['.$file.']';
-          
-        }    
-       $current_row->content_filtered .= implode('|', $files);
+        }
+            
+       $current_row->content_filtered .= '<br />' . implode('<br />', $files);
       }
 
-//       INSERT INTO `acl` (`id`, `gid`, `oid`, `acl`) VALUES
+// INSERT INTO `acl` (`id`, `gid`, `oid`, `acl`) VALUES
 
-  
 // INSERT INTO `aliases` (`id`, `source`, `target`, `type`, `data`, `idx`, `relobj_id`, `reltype`, `pri`, `cached`) VALUES
        
+// INSERT INTO `extlinks` (`id`, `url`, `name`, `hits`, `oid`, `descript`, `newwindow`, `doclinkcollection`, `type`, `docid`) VALUES
        
 
   }
 
+}
+
+function _aw_migrate_convert_file_path($path, $id = NULL, $type, $domain) {  
+  $new_path = NULL;
+  $path_elements = explode('/', $path);
+  $file = str_replace(' ', '+', $path_elements[count($path_elements)-1]);
+  switch ($type) {
+    case 'file':
+      $new_path = $domain . '/orb.aw/class=file/action=preview/id=' . $id . '/' . $file;
+      break;
+    case 'image':
+      $new_path = $domain . '/orb.aw/class=image/action=show/fastcall=1/file=' . $file;
+      break;
+  }
+  return $new_path;
 }
