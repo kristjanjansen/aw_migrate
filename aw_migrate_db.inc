@@ -154,7 +154,10 @@ class AWDocDBMigration extends Migration {
         }    
        $current_row->content_filtered .= implode('|', $files);
       }
-    
+
+//       INSERT INTO `acl` (`id`, `gid`, `oid`, `acl`) VALUES
+
+  
 // INSERT INTO `aliases` (`id`, `source`, `target`, `type`, `data`, `idx`, `relobj_id`, `reltype`, `pri`, `cached`) VALUES
        
        
