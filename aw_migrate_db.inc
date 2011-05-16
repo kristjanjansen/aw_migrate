@@ -1,7 +1,43 @@
 <?php
 
-class AWDocDBMigration extends Migration {
+class AWUserMigration extends Migration {
   public function __construct() {
+
+    parent::__construct();
+
+    $query = db_select('aw_groups', 'a_g')
+             ->fields('a_g', array('gid', 'name'))
+             ->condition('type', 1)
+             ->distinct();
+             
+             
+    $this->source = new MigrateSourceSQL($query);
+    $this->destination = new MigrateDestinationUser();
+    
+    $this->map = new MigrateSQLMap($this->machineName,
+        array('gid' => array(
+                'type' => 'int',
+                'unsigned' => TRUE,
+                'not null' => TRUE,
+                )
+             ),
+        MigrateDestinationUser::getKeySchema()
+    );
+
+ //   $this->addFieldMapping('uid', 'gid');
+    $this->addFieldMapping('name', 'name');
+}
+
+public function prepareRow($current_row) {
+}
+
+}
+
+class AWDocMigration extends Migration {
+  
+  public function __construct() {
+  
+    $this->dependencies = array('AWUser');
     
     parent::__construct();
         
@@ -9,8 +45,7 @@ class AWDocDBMigration extends Migration {
              ->fields('a_d', array('docid', 'title', 'content'))
              ->distinct();
 
-    $this->source = new MigrateSourceSQL($query);
-             
+    $this->source = new MigrateSourceSQL($query);           
     $this->destination = new MigrateDestinationNode('article');
  
     $this->map = new MigrateSQLMap($this->machineName,
@@ -26,14 +61,40 @@ class AWDocDBMigration extends Migration {
     
     $this->addFieldMapping('nid', 'docid');
     $this->addFieldMapping('is_new')->defaultValue(TRUE);
+    $this->addFieldMapping('uid', 'uid');
     $this->addFieldMapping('title', 'title');
+    $this->addFieldMapping('created', 'changed');
+    $this->addFieldMapping('changed', 'changed');
   //  $this->addFieldMapping('body', 'content')->arguments(array('format' => 'full_html'));
    $this->addFieldMapping('body', 'content_filtered')->arguments(array('format' => 'full_html'));
 
   }
 
   public function prepareRow($current_row) {
+           
+    $query = db_select('aw_config', 'aw_c')
+       ->fields('aw_c', array('ckey','modified', 'modified_by'))
+       ->condition('ckey', 'document_editor_open_' . $current_row->docid)
+       ->execute();
+     
+     foreach ($query as $cache_key) {
+       $current_row->changed = $cache_key->modified;
+       $current_row->user_name = $cache_key->modified_by;
+     }
 
+     
+     if ($current_row->user_name) {
+     $query = db_select('users', 'u')
+        ->fields('u', array('uid'))
+        ->condition('name', $current_row->user_name)
+        ->execute();
+      
+     foreach ($query as $user) {
+       $current_row->uid = $user->uid;
+     }
+    }
+  
+  
     $current_row->content_filtered =  $current_row->content; 
 
     $file_index = NULL;
