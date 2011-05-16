@@ -61,7 +61,7 @@ class AWDocMigration extends Migration {
     
     $this->addFieldMapping('nid', 'docid');
     $this->addFieldMapping('is_new')->defaultValue(TRUE);
-    $this->addFieldMapping('uid', 'uid');
+    $this->addFieldMapping('uid', 'uid')->defaultValue(TRUE);
     $this->addFieldMapping('title', 'title');
     $this->addFieldMapping('created', 'changed');
     $this->addFieldMapping('changed', 'changed');
