@@ -5,7 +5,7 @@ class AWUserMigration extends Migration {
 
     parent::__construct();
 
-    $query = db_select('aw_groups', 'a_g')
+    $query = db_select('groups', 'a_g')
              ->fields('a_g', array('gid', 'name'))
              ->condition('type', 1)
              ->distinct();
@@ -41,16 +41,17 @@ class AWDocMigration extends Migration {
     
     parent::__construct();
         
-    $query = db_select('aw_documents', 'a_d')
-             ->fields('a_d', array('docid', 'title', 'content'))
-             ->distinct();
-
+    $query = db_select('objects', 'a_o')
+             ->fields('a_o', array('oid', 'name', 'createdby', 'created', 'modified', 'status', 'metadata'))
+             ->condition('class_id', 7)
+             ->orderBy('modified', 'DESC');
+             
     $this->source = new MigrateSourceSQL($query);           
     $this->destination = new MigrateDestinationNode('article');
  
     $this->map = new MigrateSQLMap($this->machineName,
         array(
-          'docid' => array('type' => 'int',
+          'oid' => array('type' => 'int',
                         'unsigned' => TRUE,
                         'not null' => TRUE,
                         )
@@ -59,44 +60,38 @@ class AWDocMigration extends Migration {
       );
   
     
-    $this->addFieldMapping('nid', 'docid');
+    $this->addFieldMapping('nid', 'oid');
     $this->addFieldMapping('is_new')->defaultValue(TRUE);
-    $this->addFieldMapping('uid', 'uid')->defaultValue(TRUE);
-    $this->addFieldMapping('title', 'title');
-    $this->addFieldMapping('created', 'changed');
-    $this->addFieldMapping('changed', 'changed');
-  //  $this->addFieldMapping('body', 'content')->arguments(array('format' => 'full_html'));
-   $this->addFieldMapping('body', 'content_filtered')->arguments(array('format' => 'full_html'));
+    $this->addFieldMapping('uid', 'uid')->defaultValue(1);
+    $this->addFieldMapping('title', 'name');
+    $this->addFieldMapping('created', 'created');
+    $this->addFieldMapping('changed', 'modified');
+    $this->addFieldMapping('body', 'body')->arguments(array('format' => 'full_html'));
 
   }
 
   public function prepareRow($current_row) {
            
-    $query = db_select('aw_config', 'aw_c')
-       ->fields('aw_c', array('ckey','modified', 'modified_by'))
-       ->condition('ckey', 'document_editor_open_' . $current_row->docid)
-       ->execute();
-     
-     foreach ($query as $cache_key) {
-       $current_row->changed = $cache_key->modified;
-       $current_row->user_name = $cache_key->modified_by;
-     }
-
-     
-     if ($current_row->user_name) {
      $query = db_select('users', 'u')
         ->fields('u', array('uid'))
-        ->condition('name', $current_row->user_name)
+        ->condition('name', $current_row->createdby)
         ->execute();
       
      foreach ($query as $user) {
        $current_row->uid = $user->uid;
      }
-    }
-  
-  
-    $current_row->content_filtered =  $current_row->content; 
+    
+     $query = db_select('documents', 'a_d')
+         ->fields('a_d', array('content'))
+         ->condition('docid', $current_row->oid)
+         ->execute();
 
+      foreach ($query as $doc) {
+        $current_row->body = $doc->content;
+      }
+  
+   
+ /*
     $file_index = NULL;
     $image_index = NULL;
     $gallery_index = NULL;
@@ -181,64 +176,8 @@ class AWDocMigration extends Migration {
   
     $current_row->content_filtered = str_replace(array_keys($replace_map), array_values($replace_map), $current_row->content_filtered);
 
- 
+ */
 
-     // Files
-
-     $files = array();
-       $result = db_select('aw_aliases', 'aw_a')
-         ->fields('aw_a', array('source', 'target', 'idx'))
-         ->condition('source', $current_row->docid)
-         ->condition('type', 41)
-         ->execute();
-  
-       if ($result) {
-         foreach ($result as $row) {
-           
-           $query_files = db_select('aw_files', 'aw_f')
-              ->fields('aw_f', array('file'))
-              ->condition('id', $row->target)
-              ->execute();
-            
-            foreach ($query_files as $query_file) {
-              $file = $query_file->file;
-            }
-  
-            $files[] = _aw_migrate_convert_file_path($file, $row->target, 'file', 'http://www.vonkrahl.ee');
-  
-         }    
-        $current_row->content_filtered .= implode('<br />', $files);
-       }
-    
-    // Images 
-    
-    
-    $files = array();
-      $result = db_select('aw_aliases', 'aw_a')
-        ->fields('aw_a', array('source', 'target', 'idx'))
-        ->condition('source', $current_row->docid)
-        ->condition('type', 6)
-        ->execute();
- 
-      if ($result) {
-        foreach ($result as $row) {
-          
-          $query_files = db_select('aw_images', 'aw_i')
-             ->fields('aw_i', array('file'))
-             ->condition('id', $row->target)
-             ->execute();
-           
-           foreach ($query_files as $query_file) {
-             $file = $query_file->file;
-           }
-        
-           $files[] = _aw_migrate_convert_file_path($file, $row->target, 'image', 'http://www.vonkrahl.ee');
-          
-        }
-            
-       $current_row->content_filtered .= '<br />' . implode('<br />', $files);
-      }
-       
 
   }
 
@@ -258,9 +197,3 @@ function _aw_migrate_convert_file_path($path, $id = NULL, $type, $domain) {
   }
   return $new_path;
 }
-
-// INSERT INTO `acl` (`id`, `gid`, `oid`, `acl`) VALUES
-
-// INSERT INTO `aliases` (`id`, `source`, `target`, `type`, `data`, `idx`, `relobj_id`, `reltype`, `pri`, `cached`) VALUES
-       
-// INSERT INTO `extlinks` (`id`, `url`, `name`, `hits`, `oid`, `descript`, `newwindow`, `doclinkcollection`, `type`, `docid`) VALUES
