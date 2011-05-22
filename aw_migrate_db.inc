@@ -69,7 +69,7 @@ class AWImageMigration extends Migration {
     $this->addFieldMapping('created', 'created');
     $this->addFieldMapping('changed', 'modified');
 
-    $associated_file_arguments = MigrateFileFieldHandler::arguments(drupal_get_path('module', 'aw_migrate') . '/data/' , 'file_copy', FILE_EXISTS_RENAME, NULL, 2, 1, NULL, NULL, ';');
+    $associated_file_arguments = MigrateFileFieldHandler::arguments('sites/default/files', 'file_copy', FILE_EXISTS_RENAME, NULL, 2, 1, NULL, NULL, ';');
     
      $this->addFieldMapping('field_image', 'images')
        ->separator('|')
@@ -77,7 +77,9 @@ class AWImageMigration extends Migration {
     }
 
   public function prepareRow($current_row) {
- 
+    print_r(drupal_get_path('module', 'aw_migrate'));
+    $dir = 'public://aw_images';
+    file_prepare_directory($dir);
     // Get related images
     $images = array();
     $result = db_select('images', 'aw_i')
@@ -86,11 +88,14 @@ class AWImageMigration extends Migration {
       ->execute();
     if ($result) {
       foreach ($result as $row) {      
-        $images[] = basename($row->file);
+        $image = basename($row->file);
       }    
-      $current_row->images = implode('|', $images);
+      $current_row->images = $image;
+   
+      $f = file_get_contents(_aw_migrate_convert_file_path($image, 'image'));
+      file_unmanaged_save_data($f, 'public://'. $image, 'FILE_EXISTS_REPLACE');
     }
-  //  print_r($images);
+    print_r($image);
           
      $query = db_select('users', 'u')
         ->fields('u', array('uid'))
@@ -175,14 +180,14 @@ class AWDocMigration extends Migration {
 
 }
 
-function _aw_migrate_convert_file_path($path, $type, $id = NULL) {  
+function _aw_migrate_convert_file_path($path, $type, $domain = NULL, $id = NULL) {  
   $file = basename($path);
   switch ($type) {
     case 'file':
-      $new_path = 'orb.aw/class=file/action=preview/id=' . $id . '/' . $file;
+      $new_path = $domain . 'orb.aw/class=file/action=preview/id=' . $id . '/' . $file;
       break;
     case 'image':
-      $new_path = 'http://www.vonkrahl.ee/orb.aw/class=image/action=show/fastcall=1/file=' . $file;
+      $new_path = $domain . 'http://www.vonkrahl.ee/orb.aw/class=image/action=show/fastcall=1/file=' . $file;
       break;
   }
   return $new_path;
