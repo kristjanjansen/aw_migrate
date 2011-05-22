@@ -75,7 +75,7 @@ class AWImageMigration extends Migration {
     $this->addFieldMapping('created', 'created');
     $this->addFieldMapping('changed', 'modified');
 
-    $associated_file_arguments = MigrateFileFieldHandler::arguments(variable_get('file_public_path', conf_path() . '/files'), 'file_copy', FILE_EXISTS_RENAME, NULL, 2, 1, NULL, NULL, ';');
+    $associated_file_arguments = MigrateFileFieldHandler::arguments(variable_get('file_public_path', conf_path() . '/files/aw_images'), 'file_copy', FILE_EXISTS_RENAME, NULL, 2, 1, NULL, NULL, ';');
     
      $this->addFieldMapping('field_image', 'images')
        ->separator('|')
@@ -96,11 +96,13 @@ class AWImageMigration extends Migration {
         $image = basename($row->file);
       }    
       $current_row->images = $image;
-   
-      $f = file_get_contents(_aw_migrate_convert_file_path($image, 'image'));
-      file_unmanaged_save_data($f, 'public://'. $image, 'FILE_EXISTS_REPLACE');
+      
+      if (!file_exists('public://aw_images/'. $image)) {
+        $f = file_get_contents(_aw_migrate_convert_file_path($image, 'image'));
+        file_unmanaged_save_data($f, 'public://aw_images/'. $image, 'FILE_EXISTS_REPLACE');
+      }
+    
     }
-    print_r($image);
           
      $query = db_select('users', 'u')
         ->fields('u', array('uid'))
