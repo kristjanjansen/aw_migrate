@@ -42,7 +42,13 @@ class AWImageMigration extends Migration {
     $this->dependencies = array('AWUser');
     
     parent::__construct();
-        
+    
+    $dir = 'public://aw_images';
+    
+    if (!file_prepare_directory($dir)) {
+      drupal_mkdir($dir);
+    }
+    
     $query = db_select('objects', 'a_o')
              ->fields('a_o', array('oid', 'name', 'createdby', 'created', 'modified', 'status', 'metadata'))
              ->condition('class_id', 6)
@@ -69,7 +75,7 @@ class AWImageMigration extends Migration {
     $this->addFieldMapping('created', 'created');
     $this->addFieldMapping('changed', 'modified');
 
-    $associated_file_arguments = MigrateFileFieldHandler::arguments('sites/default/files', 'file_copy', FILE_EXISTS_RENAME, NULL, 2, 1, NULL, NULL, ';');
+    $associated_file_arguments = MigrateFileFieldHandler::arguments(variable_get('file_public_path', conf_path() . '/files'), 'file_copy', FILE_EXISTS_RENAME, NULL, 2, 1, NULL, NULL, ';');
     
      $this->addFieldMapping('field_image', 'images')
        ->separator('|')
@@ -77,9 +83,8 @@ class AWImageMigration extends Migration {
     }
 
   public function prepareRow($current_row) {
-    print_r(drupal_get_path('module', 'aw_migrate'));
-    $dir = 'public://aw_images';
-    file_prepare_directory($dir);
+ 
+ 
     // Get related images
     $images = array();
     $result = db_select('images', 'aw_i')
