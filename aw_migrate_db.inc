@@ -33,11 +33,88 @@ public function prepareRow($current_row) {
 
 }
 
-class AWDocMigration extends Migration {
+
+
+class AWImageMigration extends Migration {
   
   public function __construct() {
   
     $this->dependencies = array('AWUser');
+    
+    parent::__construct();
+        
+    $query = db_select('objects', 'a_o')
+             ->fields('a_o', array('oid', 'name', 'createdby', 'created', 'modified', 'status', 'metadata'))
+             ->condition('class_id', 6)
+             ->orderBy('modified', 'DESC');
+             
+    $this->source = new MigrateSourceSQL($query);           
+    $this->destination = new MigrateDestinationNode('article');
+ 
+    $this->map = new MigrateSQLMap($this->machineName,
+        array(
+          'oid' => array('type' => 'int',
+                        'unsigned' => TRUE,
+                        'not null' => TRUE,
+                        )
+        ),
+        MigrateDestinationNode::getKeySchema()
+      );
+  
+    
+    $this->addFieldMapping('nid', 'oid');
+    $this->addFieldMapping('is_new')->defaultValue(TRUE);
+    $this->addFieldMapping('uid', 'uid')->defaultValue(1);
+    $this->addFieldMapping('title', 'name');
+    $this->addFieldMapping('created', 'created');
+    $this->addFieldMapping('changed', 'modified');
+
+    $associated_file_arguments = MigrateFileFieldHandler::arguments(drupal_get_path('module', 'aw_migrate') . '/data/' , 'file_copy', FILE_EXISTS_RENAME, NULL, 2, 1, NULL, NULL, ';');
+    
+     $this->addFieldMapping('field_image', 'images')
+       ->separator('|')
+       ->arguments($associated_file_arguments);
+    }
+
+  public function prepareRow($current_row) {
+ 
+    // Get related images
+    $images = array();
+    $result = db_select('images', 'aw_i')
+      ->fields('aw_i', array('file'))
+      ->condition('id', $current_row->oid)
+      ->execute();
+    if ($result) {
+      foreach ($result as $row) {      
+        $images[] = basename($row->file);
+      }    
+      $current_row->images = implode('|', $images);
+    }
+  //  print_r($images);
+          
+     $query = db_select('users', 'u')
+        ->fields('u', array('uid'))
+        ->condition('name', $current_row->createdby)
+        ->execute();
+      
+     foreach ($query as $user) {
+       $current_row->uid = $user->uid;
+     }  
+   
+
+
+
+  }
+
+}
+
+
+
+class AWDocMigration extends Migration {
+  
+  public function __construct() {
+  
+    $this->dependencies = array('AWImage');
     
     parent::__construct();
         
@@ -98,16 +175,14 @@ class AWDocMigration extends Migration {
 
 }
 
-function _aw_migrate_convert_file_path($path, $id = NULL, $type, $domain) {  
-  $new_path = NULL;
-  $path_elements = explode('/', $path);
-  $file = str_replace(' ', '+', $path_elements[count($path_elements)-1]);
+function _aw_migrate_convert_file_path($path, $type, $id = NULL) {  
+  $file = basename($path);
   switch ($type) {
     case 'file':
-      $new_path = $domain . '/orb.aw/class=file/action=preview/id=' . $id . '/' . $file;
+      $new_path = 'orb.aw/class=file/action=preview/id=' . $id . '/' . $file;
       break;
     case 'image':
-      $new_path = $domain . '/orb.aw/class=image/action=show/fastcall=1/file=' . $file;
+      $new_path = 'http://www.vonkrahl.ee/orb.aw/class=image/action=show/fastcall=1/file=' . $file;
       break;
   }
   return $new_path;
