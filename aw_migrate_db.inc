@@ -24,7 +24,6 @@ class AWUserMigration extends Migration {
         MigrateDestinationUser::getKeySchema()
     );
 
- //   $this->addFieldMapping('uid', 'gid');
     $this->addFieldMapping('name', 'name');
 }
 
@@ -55,7 +54,7 @@ class AWImageMigration extends Migration {
              ->orderBy('modified', 'DESC');
              
     $this->source = new MigrateSourceSQL($query);           
-    $this->destination = new MigrateDestinationNode('article');
+    $this->destination = new MigrateDestinationNode('image');
  
     $this->map = new MigrateSQLMap($this->machineName,
         array(
@@ -85,7 +84,6 @@ class AWImageMigration extends Migration {
   public function prepareRow($current_row) {
  
  
-    // Get related images
     $images = array();
     $result = db_select('images', 'aw_i')
       ->fields('aw_i', array('file'))
@@ -98,8 +96,8 @@ class AWImageMigration extends Migration {
       $current_row->images = $image;
       
       if (!file_exists('public://aw_images/'. $image)) {
-        $f = file_get_contents(_aw_migrate_convert_file_path($image, 'image'));
-        file_unmanaged_save_data($f, 'public://aw_images/'. $image, 'FILE_EXISTS_REPLACE');
+  //      $f = file_get_contents(_aw_migrate_convert_file_path($image, 'image'));
+  //      file_unmanaged_save_data($f, 'public://aw_images/'. $image, 'FILE_EXISTS_REPLACE');
       }
     
     }
@@ -157,6 +155,10 @@ class AWDocMigration extends Migration {
     $this->addFieldMapping('changed', 'modified');
     $this->addFieldMapping('body', 'body')->arguments(array('format' => 'full_html'));
 
+    if (module_exists('node_reference')) {
+      $this->addFieldMapping('field_image_ref', 'related_images')
+      ->separator('|');
+    }
   }
 
   public function prepareRow($current_row) {
@@ -180,9 +182,18 @@ class AWDocMigration extends Migration {
       }
   
    
-
-
-
+      $images = array();
+      $result = db_select('aliases', 'aw_a')
+        ->fields('aw_a', array('target'))
+        ->condition('source', $current_row->oid)
+        ->execute();
+      if ($result) {
+        foreach ($result as $row) {      
+          $images[] = $row->target;
+        }    
+      }
+    
+      $current_row->related_images = implode('|' , $images);
   }
 
 }
