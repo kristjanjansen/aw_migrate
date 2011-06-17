@@ -246,12 +246,12 @@ class AWDocMigration extends Migration {
     $this->addFieldMapping('path', 'path');
     
     if (module_exists('node_reference')) {
-      $this->addFieldMapping('field_image_ref', 'related_images')
+      $this->addFieldMapping('field_reference_image', 'reference_image')
       ->separator('|');
     }
 
     if (module_exists('node_reference')) {
-      $this->addFieldMapping('field_ref', 'related_files')
+      $this->addFieldMapping('field_reference_file', 'reference_image')
       ->separator('|');
     }
 
@@ -276,7 +276,8 @@ class AWDocMigration extends Migration {
          ->execute();
 
       foreach ($query as $doc) {
-        $current_row->body = $doc->content;
+        $current_row->body =  _aw_migrate_cleanup($doc->content);
+   //     $current_row->body =  $doc->content;
       }
   
    
@@ -291,7 +292,7 @@ class AWDocMigration extends Migration {
           $images[] = $row->target;
         }    
       }    
-      $current_row->related_images = implode('|' , $images);
+      $current_row->reference_image = implode('|' , $images);
 
       $files = array();
       $result = db_select('aliases', 'aw_a')
@@ -304,7 +305,7 @@ class AWDocMigration extends Migration {
           $files[] = $row->target;
         }    
       }    
-      $current_row->related_files = implode('|' , $files);
+      $current_row->reference_file = implode('|' , $files);
   
   
   }
@@ -322,4 +323,95 @@ function _aw_migrate_convert_file_path($path, $type, $domain = NULL, $id = NULL)
       break;
   }
   return $new_path;
+}
+
+
+
+
+function _aw_migrate_cleanup($text) {
+
+/*
+    $file_index = NULL;
+    $image_index = NULL;
+    $gallery_index = NULL;
+    
+    $found = preg_match_all('#\#file([0-9]+)\##e',$current_row->content_filtered, $matches);
+    if ($found) {
+      foreach ($matches[1] as $match) {
+        $file_index[] = $match;
+      }
+    }
+
+    $found = preg_match_all('#\#pict([0-9]+)\##e',$current_row->content_filtered, $matches);
+    if ($found) {
+      foreach ($matches[1] as $match) {
+        $image_index[] = $match;
+      }
+    }
+
+    $found = preg_match_all('#\#minigalerii([0-9]+)\##e',$current_row->content_filtered, $matches);
+    if ($found) {
+      foreach ($matches[1] as $match) {
+        $gallery_index[] = $match;
+      }
+    }
+*/    
+    
+    $preg_replace_map = array(
+      '#\#file([0-9]+)\##e' => '',
+      '#\#pict([0-9]+)\##e' => '',
+      '#\#minigalerii([0-9]+)\##e' => '',
+      '#\s\s+#' => ' ',
+      '#<span style=\"font-weight: bold;\">(.*)</span>#e' => "('<strong>$1</strong>')",
+      '#<!--(.*)-->#e' => '',
+      '#<strong>([\s]+)</strong>#e' => '',
+      '#<strong>GALLERY</strong>#e' => '',
+    );
+    
+    $current_row->content_filtered = preg_replace(array_keys($preg_replace_map), array_values($preg_replace_map), $text);
+
+
+    // Omitting html, body, div, span, fieldset, form, input, select, textarea, label, legend, font
+
+      $allowed_tags = array(
+      'applet','object','iframe','h1','h2','h3','h4','h5','h6',
+      'p','blockquote','pre','a','abbr','acronym','address','big','cite','code',
+      'del','dfn','em','img','ins','kbd','q','s','samp','small','strike',
+      'strong','sub','sup','tt','var','b','u','i','center','dl','dt','dd','ol',
+      'ul','li', 'table','caption','tbody','tfoot','thead','tr','th','td'
+      );
+
+      $text = filter_xss($text, $allowed_tags);
+
+    $replace_map = array(
+      '<b>' => '<strong>',
+      '</b>' => '</strong>',
+      '&nbsp;' => '',
+      '<strong></strong>' => '',
+      '<p></p>' => '',
+      '<p><br />' => '<p>',
+      'target="_blank" ' => '',
+      '&ndash;' => '-',
+      '&rsquo;' => "'",
+      '&lsquo;' => "'",
+      '&ldquo;' => '"',
+      '&rdquo;' => '"',
+      '&bdquo;' => '"',
+      '&acute;' => '´',
+      '&Scaron;' => 'Š',
+      '&scaron;' => 'Š',
+      '&Otilde;' => 'Õ',
+      '&otilde;' => 'õ',
+      '&Auml;' => 'Ä',
+      '&auml;' => 'ä',
+      '&Ouml;' => 'Ö',
+      '&ouml;' => 'Ö',
+      '&Uuml;' => 'Ü',
+      '&uuml;' => 'ü',
+    );
+  
+    $text = str_replace(array_keys($replace_map), array_values($replace_map), $text);
+
+return $text;
+
 }
