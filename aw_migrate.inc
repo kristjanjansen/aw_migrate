@@ -102,7 +102,7 @@ class AWDocMigration extends Migration {
        $current_row->uid = $user->uid;
      }
     
-    $connection = Database::getConnection('default', variable_get('aw_migrate_db', 'aw'));
+    $connection = Database::getConnection('default', 'aw');
   
     $query = $connection->select('documents', 'a_d');
   
