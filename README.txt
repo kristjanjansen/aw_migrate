@@ -17,7 +17,7 @@ $databases['aw']['default'] = array (
   'driver' => 'mysql',
   'database' => 'aw',
   'username' => 'your_db_username',
-  'password' => 'your_db_username',
+  'password' => 'your_db_password',
   'host' => 'localhost',
   'port' => '',
 );
