@@ -3,4 +3,4 @@ description = ""
 core = 7.x
 dependencies[] = migrate
 files[] = aw_migrate.module
-files[] = aw_migrate_db.inc
+files[] = aw_migrate.inc
