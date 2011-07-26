@@ -24,7 +24,7 @@ $databases['aw']['default'] = array (
 
 6. Run following commands inside your Drupal site root directory
 
-git clone git@github.com:kristjanjansen/aw_migrate.git sites/all/modules/aw_migrate
+git clone https://github.com/kristjanjansen/aw_migrate.git sites/all/modules/aw_migrate
 drush en aw_migrate -y
 drush mi --all
 
