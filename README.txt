@@ -33,7 +33,9 @@ drush vset aw_file_path *your_automatweb_full_file_path* -y
 
 *your_automatweb_full_web_path_to_file* looks like this: 'http://www.vonkrahl.ee/orb.aw/class=image/action=show/fastcall=1/file='
 
-8. Rollback and migrate again (note that this copies all your files an images over the web and can be time-consuming)
+8. Add new 'field_file' for Article node type
+
+9. Rollback and migrate again (note that this copies all your files an images over the web and can be time-consuming)
 
 drush mr --all && drush mi --all
 
