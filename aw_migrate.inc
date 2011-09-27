@@ -1,5 +1,6 @@
 <?php
 
+
 class AWUserMigration extends Migration {
   public function __construct() {
 
@@ -83,28 +84,28 @@ class AWImageMigration extends Migration {
     $this->addFieldMapping('created', 'created');
     $this->addFieldMapping('changed', 'modified');
 
-    $associated_file_arguments = MigrateFileFieldHandler::arguments(variable_get('file_public_path', conf_path() . '/files/aw_images'), 'file_copy', FILE_EXISTS_RENAME, NULL, 2, 1, NULL, NULL, ';');
+    $associated_file_arguments = MigrateFileFieldHandler::arguments(variable_get('file_public_path', conf_path() . '/files') . '/aw_images', 'file_copy', FILE_EXISTS_REPLACE, NULL, 2, 1, NULL, NULL, ';');
     
-     $this->addFieldMapping('field_image', 'image')
+     $this->addFieldMapping('field_image', 'images')
        ->separator('|')
        ->arguments($associated_file_arguments);
 
     }
 
   public function prepareRow($current_row) {
- 
-    $current_row->image = basename($current_row->file);
-      
-    if (!file_exists('public://aw_images/'. $current_row->image)) {
-//    $new_image = file_get_contents(_aw_migrate_convert_file_path($image, 'image'));
-//    file_unmanaged_save_data($new_image, 'public://aw_images/'. $image, 'FILE_EXISTS_REPLACE');
-    }
 
+    $current_row->uid = _aw_get_uid($current_row->createdby);
+ 
+    $current_row->images = basename($current_row->file);
+ 
+    if (variable_get('aw_file_copy', FALSE)) {
+      _aw_copy_file($current_row->file, 'public://aw_images');
+    } 
+  
   }
 
 }
 
-/*
 
 class AWFileMigration extends Migration {
   
@@ -120,13 +121,20 @@ class AWFileMigration extends Migration {
       drupal_mkdir($dir);
     }
     
-    $query = db_select('objects', 'a_o')
-             ->fields('a_o', array('oid', 'name', 'createdby', 'created', 'modified', 'status', 'metadata'))
-             ->condition('class_id', 41)
-             ->orderBy('modified', 'DESC');
+    $connection = Database::getConnection('default', variable_get('aw_migrate_db', 'aw'));
+    
+    $query = $connection->select('objects', 'aw_o');
+
+    $query->leftJoin('files', 'aw_f', 'aw_o.oid = aw_f.id');
+
+    $query
+      ->fields('aw_o', array('oid', 'name', 'createdby', 'created', 'modified', 'status'))
+      ->fields('aw_f', array('file'))
+      ->condition('aw_o.class_id', 41)
+      ->orderBy('aw_o.modified', 'DESC');
              
-    $this->source = new MigrateSourceSQL($query);           
-    $this->destination = new MigrateDestinationNode('file');
+    $this->source = new MigrateSourceSQL($query, array(), NULL, array('map_joinable' => FALSE));           
+    $this->destination = new MigrateDestinationNode('article');
  
     $this->map = new MigrateSQLMap($this->machineName,
         array(
@@ -138,7 +146,6 @@ class AWFileMigration extends Migration {
         MigrateDestinationNode::getKeySchema()
       );
   
-    
     $this->addFieldMapping('nid', 'oid');
     $this->addFieldMapping('is_new')->defaultValue(TRUE);
     $this->addFieldMapping('uid', 'uid')->defaultValue(1);
@@ -146,48 +153,29 @@ class AWFileMigration extends Migration {
     $this->addFieldMapping('created', 'created');
     $this->addFieldMapping('changed', 'modified');
 
-    $associated_file_arguments = MigrateFileFieldHandler::arguments(variable_get('file_public_path', conf_path() . '/files/aw_files'), 'file_copy', FILE_EXISTS_RENAME, NULL, 2, 1, NULL, NULL, ';');
+    $associated_file_arguments = MigrateFileFieldHandler::arguments(variable_get('file_public_path', conf_path() . '/files') . '/aw_files', 'file_copy', FILE_EXISTS_REPLACE, NULL, 2, 1, NULL, NULL, ';');
     
      $this->addFieldMapping('field_file', 'files')
        ->separator('|')
        ->arguments($associated_file_arguments);
+
     }
 
   public function prepareRow($current_row) {
  
- 
-    $files = array();
-    $result = db_select('files', 'aw_f')
-      ->fields('aw_f', array('file'))
-      ->condition('id', $current_row->oid)
-      ->execute();
-    if ($result) {
-      foreach ($result as $row) {      
-        $file = basename($row->file);
-      }    
-      $current_row->files = $file;
-      
-      if (!file_exists('public://aw_files/'. $file)) {
-  //      $f = file_get_contents(_aw_migrate_convert_file_path($file, 'file'));
-  //      file_unmanaged_save_data($f, 'public://aw_files/'. $file, 'FILE_EXISTS_REPLACE');
-      }
+    $current_row->uid = _aw_get_uid($current_row->createdby);
+  
+    $current_row->files = basename($current_row->file);
     
-    }
-          
-     $query = db_select('users', 'u')
-        ->fields('u', array('uid'))
-        ->condition('name', $current_row->createdby)
-        ->execute();
-      
-     foreach ($query as $user) {
-       $current_row->uid = $user->uid;
-     }  
-   
+    if (variable_get('aw_file_copy', FALSE)) {
+      _aw_copy_file($current_row->file, 'public://aw_files');
+    } 
+
   }
 
 }
 
-*/
+
 
 
 
@@ -250,23 +238,30 @@ class AWDocMigration extends Migration {
 
   public function prepareRow($current_row) {
      
-     $query = db_select('users', 'u')
-        ->fields('u', array('uid'))
-        ->condition('name', $current_row->createdby)
-        ->execute();
-      
-     foreach ($query as $user) {
-       $current_row->uid = $user->uid;
-     }
-    
-     $current_row->body =  _aw_migrate_cleanup($current_row->content);
-    
-}
+     $current_row->uid = _aw_get_uid($current_row->createdby);
+     $current_row->body =  _aw_migrate_clean_text($current_row->content);
+  }  
 
 }
 
+function _aw_get_uid($user_name) {
+  
+  $uid = NULL;
+     
+  $query = db_select('users', 'u')
+      ->fields('u', array('uid'))
+      ->condition('name', $user_name)
+      ->execute();
 
-function _aw_migrate_cleanup($text) {   
+  foreach ($query as $user) {
+      $uid = $user->uid;
+  }    
+  
+  return $uid;
+
+}
+
+function _aw_migrate_clean_text($text) {   
     
     $preg_replace_map = array(
       '#\s\s+#' => ' ',
@@ -325,15 +320,13 @@ function _aw_migrate_cleanup($text) {
 }
 
 
-function _aw_migrate_convert_file_path($path, $type, $domain = NULL, $id = NULL) {  
-  $file = basename($path);
-  switch ($type) {
-    case 'file':
-      $new_path = $domain . 'http://www.vonkrahl.ee/orb.aw/class=file/action=preview/id=' . $id . '/' . urlencode($file);
-      break;
-    case 'image':
-      $new_path = $domain . 'http://www.vonkrahl.ee/orb.aw/class=image/action=show/fastcall=1/file=' . $file;
-      break;
+
+function _aw_copy_file($file_path, $target_dir) {
+  if (variable_get('aw_file_path', '')) {
+    $file = basename($file_path);
+    $web_file_fullpath = variable_get('aw_file_path', '') . $file;
+    print_r($web_file_fullpath).'|';
+    $web_file = file_get_contents($web_file_fullpath);
+    file_unmanaged_save_data($web_file, $target_dir . '/' . $file, 'FILE_EXISTS_REPLACE');
   }
-  return $new_path;
 }
