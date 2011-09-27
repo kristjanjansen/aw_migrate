@@ -51,6 +51,8 @@ class AWImageMigration extends Migration {
       drupal_mkdir($dir);
     }
     
+    $connection = Database::getConnection('default', variable_get('aw_migrate_db', 'aw'));
+    
     $query = $connection->select('objects', 'aw_o');
 
     $query->leftJoin('images', 'aw_i', 'aw_o.oid = aw_i.id');
@@ -61,7 +63,7 @@ class AWImageMigration extends Migration {
       ->condition('aw_o.class_id', 6)
       ->orderBy('aw_o.modified', 'DESC');
              
-    $this->source = new MigrateSourceSQL($query);           
+    $this->source = new MigrateSourceSQL($query, array(), NULL, array('map_joinable' => FALSE));           
     $this->destination = new MigrateDestinationNode('article');
  
     $this->map = new MigrateSQLMap($this->machineName,
@@ -74,7 +76,6 @@ class AWImageMigration extends Migration {
         MigrateDestinationNode::getKeySchema()
       );
   
-    
     $this->addFieldMapping('nid', 'oid');
     $this->addFieldMapping('is_new')->defaultValue(TRUE);
     $this->addFieldMapping('uid', 'uid')->defaultValue(1);
@@ -87,19 +88,21 @@ class AWImageMigration extends Migration {
      $this->addFieldMapping('field_image', 'image')
        ->separator('|')
        ->arguments($associated_file_arguments);
+
     }
 
   public function prepareRow($current_row) {
  
     $current_row->image = basename($current_row->file);
       
-    if (!file_exists('public://aw_images/'. $image)) {
+    if (!file_exists('public://aw_images/'. $current_row->image)) {
 //    $new_image = file_get_contents(_aw_migrate_convert_file_path($image, 'image'));
 //    file_unmanaged_save_data($new_image, 'public://aw_images/'. $image, 'FILE_EXISTS_REPLACE');
     }
 
-}
+  }
 
+}
 
 /*
 
@@ -230,7 +233,6 @@ class AWDocMigration extends Migration {
     $this->addFieldMapping('created', 'created');
     $this->addFieldMapping('changed', 'modified');
     $this->addFieldMapping('body', 'body')->arguments(array('format' => 'full_html'));
-    $this->addFieldMapping('path', 'path');
 
 /*    
     if (module_exists('node_reference')) {
@@ -320,4 +322,18 @@ function _aw_migrate_cleanup($text) {
 
     return $text;
 
+}
+
+
+function _aw_migrate_convert_file_path($path, $type, $domain = NULL, $id = NULL) {  
+  $file = basename($path);
+  switch ($type) {
+    case 'file':
+      $new_path = $domain . 'http://www.vonkrahl.ee/orb.aw/class=file/action=preview/id=' . $id . '/' . urlencode($file);
+      break;
+    case 'image':
+      $new_path = $domain . 'http://www.vonkrahl.ee/orb.aw/class=image/action=show/fastcall=1/file=' . $file;
+      break;
+  }
+  return $new_path;
 }
