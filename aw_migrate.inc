@@ -239,11 +239,11 @@ class AWDocMigration extends Migration {
   public function prepareRow($current_row) {
 
      $current_row->uid = _aw_get_uid($current_row->createdby);
+     //   $current_row->body =  $current_row->content;
 
-//  $current_row->body =  _aw_migrate_clean_text($current_row->content, $current_row->oid);
+  $current_row->body =  _aw_migrate_clean_text($current_row->content, $current_row->oid) . '\n---\n' . $current_row->content;
   
-     $current_row->body =  $current_row->content;
-
+  
      /*
      $aliases = array();$a = array();
  
@@ -281,31 +281,54 @@ function _aw_get_uid($user_name) {
 }
 
 function _aw_migrate_clean_text($text, $oid = NULL) {   
+ 
+  // then run another pass over the html (twice), removing unwanted attributes
+
+  $text = str_replace(array('<BR>', '<br>', '</P>', '</p>', '</PRE>', '</pre>'), "\n", $text);
     
     $preg_replace_map = array(
       '#\s\s+#' => ' ',
       '#<span style=\"font-weight: bold;\">(.*)</span>#e' => "('<strong>$1</strong>')",
       '#<!--(.*)-->#e' => '',
+      '#<xml(.*)</xml>#e' => '',
       '#<strong>([\s]+)</strong>#e' => '',
+      '#([\s]+)#e' => ' ',      
 //    '#\#file([0-9]+)\##e' => '',
 //    '#\#pict([0-9]+)\##e' => '',
     );
     
     $current_row->content_filtered = preg_replace(array_keys($preg_replace_map), array_values($preg_replace_map), $text);
 
-    // Allowing all HTML tags except html, body, div, span, fieldset, form, input, select, textarea, label, legend, font
 
+    // Cleaning up Word
+
+//   $text = ereg_replace("<(/)?(font|span|del|ins)[^>]*>", "", $text);
+//    $text = ereg_replace("<([^>]*)(class|lang|style|size|face)=(\"[^\"]*\"|'[^']*'|[^>]+)([^>]*)>","<\\1>", $text);
+//    $text = ereg_replace("<([^>]*)(class|lang|style|size|face)=(\"[^\"]*\"|'[^']*'|[^>]+)([^>]*)>","<\\1>", $text);
+
+    // Allowing all HTML tags except html, body, div, span, fieldset, form, input, select, textarea, label, legend, font
+    // pre is now allowed because of MSWord dumps
+   
     $allowed_tags = array(
       'applet','object','iframe','h1','h2','h3','h4','h5','h6',
-      'p','blockquote','pre','a','abbr','acronym','address','big','cite','code',
+      'p','blockquote','a','abbr','acronym','address','big','cite','code',
       'del','dfn','em','img','ins','kbd','q','s','samp','small','strike',
       'strong','sub','sup','tt','var','b','u','i','center','dl','dt','dd','ol',
-      'ul','li', 'table','caption','tbody','tfoot','thead','tr','th','td'
+      'ul','li', 'table','caption','tbody','tfoot','thead','tr','th','td',
     );
 
     $text = filter_xss($text, $allowed_tags);
-
+        
     $replace_map = array(
+      '<strong><u>' => '<h3>',
+      '</strong></u>' => '</h3>',
+      '<u><strong>' => '<h3>',
+      '</u></strong>' => '</h3>',
+      '<i>' => '<em>',
+      '</i>' => '</em>',
+      '<P>' => '',
+      '<STRONG>' => '<strong>',
+      '</STRONG>' => '</strong>',
       '<b>' => '<strong>',
       '</b>' => '</strong>',
       '&nbsp;' => '',
@@ -319,9 +342,12 @@ function _aw_migrate_clean_text($text, $oid = NULL) {
       '&ldquo;' => '"',
       '&rdquo;' => '"',
       '&bdquo;' => '"',
+      '&#8222;' => '"',
+      '&#8220;' => '"',
       '&acute;' => '´',
       '&Scaron;' => 'Š',
       '&scaron;' => 'Š',
+      'ð' => 'ž',
       '&Otilde;' => 'Õ',
       '&otilde;' => 'õ',
       '&Auml;' => 'Ä',
@@ -330,6 +356,9 @@ function _aw_migrate_clean_text($text, $oid = NULL) {
       '&ouml;' => 'Ö',
       '&Uuml;' => 'Ü',
       '&uuml;' => 'ü',
+      '&#8722;' => '−',
+      '<A ' => '<a ',
+      '</A>' => '</a>',
     );
   
     $text = str_replace(array_keys($replace_map), array_values($replace_map), $text);
