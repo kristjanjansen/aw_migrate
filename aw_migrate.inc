@@ -237,11 +237,30 @@ class AWDocMigration extends Migration {
   }
 
   public function prepareRow($current_row) {
-     
-     $current_row->uid = _aw_get_uid($current_row->createdby);
-     $current_row->body =  _aw_migrate_clean_text($current_row->content);
-  }  
 
+     $current_row->uid = _aw_get_uid($current_row->createdby);
+
+//  $current_row->body =  _aw_migrate_clean_text($current_row->content, $current_row->oid);
+  
+     $current_row->body =  $current_row->content;
+
+     /*
+     $aliases = array();$a = array();
+ 
+     $connection = Database::getConnection('default', 'aw');
+
+     $query = $connection->select('aliases', 'aw_a');
+
+     $query->fields('aw_a', array('source', 'target', 'type', 'idx'))
+          ->condition('source', $current_row->oid)
+          ->execute();
+
+        $q = $query->countQuery()->execute()->fetchField();
+    print_r($query);   
+     $current_row->body = implode('|', $a) . $current_row->body;
+     */
+   
+   }
 }
 
 function _aw_get_uid($user_name) {
@@ -261,7 +280,7 @@ function _aw_get_uid($user_name) {
 
 }
 
-function _aw_migrate_clean_text($text) {   
+function _aw_migrate_clean_text($text, $oid = NULL) {   
     
     $preg_replace_map = array(
       '#\s\s+#' => ' ',
