@@ -280,31 +280,30 @@ function _aw_get_uid($user_name) {
 
 }
 
+function _aw_alias_link($matches) {
+  return '[[['.$matches[1].']]]';
+}
+
 function _aw_migrate_clean_text($text, $oid = NULL) {   
+
+  $text = preg_replace_callback('#\#file([0-9]+)(.*)\##', '_aw_alias_link', $text);
  
   // then run another pass over the html (twice), removing unwanted attributes
 
   $text = str_replace(array('<BR>', '<br>', '</P>', '</p>', '</PRE>', '</pre>'), "\n", $text);
     
     $preg_replace_map = array(
-      '#\s\s+#' => ' ',
       '#<span style=\"font-weight: bold;\">(.*)</span>#e' => "('<strong>$1</strong>')",
       '#<!--(.*)-->#e' => '',
-      '#<xml(.*)</xml>#e' => '',
+      '#<?(.*)>#e' => '',
       '#<strong>([\s]+)</strong>#e' => '',
-      '#([\s]+)#e' => ' ',      
-//    '#\#file([0-9]+)\##e' => '',
-//    '#\#pict([0-9]+)\##e' => '',
+
+//     '#\#file([0-9]+)(.*)\##e' => "('[[file $1]]')",
+//      '#\#pict([0-9]+)(.*)\##e' => "('[[pict $1]]')",
+//      '#\#link([0-9]+)(.*)\##e' => "('[[link $1]]')",
     );
     
-    $current_row->content_filtered = preg_replace(array_keys($preg_replace_map), array_values($preg_replace_map), $text);
-
-
-    // Cleaning up Word
-
-//   $text = ereg_replace("<(/)?(font|span|del|ins)[^>]*>", "", $text);
-//    $text = ereg_replace("<([^>]*)(class|lang|style|size|face)=(\"[^\"]*\"|'[^']*'|[^>]+)([^>]*)>","<\\1>", $text);
-//    $text = ereg_replace("<([^>]*)(class|lang|style|size|face)=(\"[^\"]*\"|'[^']*'|[^>]+)([^>]*)>","<\\1>", $text);
+    $text = preg_replace(array_keys($preg_replace_map), array_values($preg_replace_map), $text);
 
     // Allowing all HTML tags except html, body, div, span, fieldset, form, input, select, textarea, label, legend, font
     // pre is now allowed because of MSWord dumps
@@ -314,7 +313,7 @@ function _aw_migrate_clean_text($text, $oid = NULL) {
       'p','blockquote','a','abbr','acronym','address','big','cite','code',
       'del','dfn','em','img','ins','kbd','q','s','samp','small','strike',
       'strong','sub','sup','tt','var','b','u','i','center','dl','dt','dd','ol',
-      'ul','li', 'table','caption','tbody','tfoot','thead','tr','th','td',
+      'ul','li', 'table','caption','tbody','tfoot','thead','tr','th','td'
     );
 
     $text = filter_xss($text, $allowed_tags);
@@ -327,6 +326,7 @@ function _aw_migrate_clean_text($text, $oid = NULL) {
       '<i>' => '<em>',
       '</i>' => '</em>',
       '<P>' => '',
+      '<p>' => '',
       '<STRONG>' => '<strong>',
       '</STRONG>' => '</strong>',
       '<b>' => '<strong>',
