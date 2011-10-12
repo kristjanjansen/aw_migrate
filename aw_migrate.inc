@@ -281,12 +281,13 @@ function _aw_get_uid($user_name) {
 }
 
 function _aw_alias_link($matches) {
-  return '[[['.$matches[1].']]]';
+  return '[[['.print_r($matches).']]]';
 }
 
 function _aw_migrate_clean_text($text, $oid = NULL) {   
 
-  $text = preg_replace_callback('#\#file([0-9]+)(.*)\##', '_aw_alias_link', $text);
+  $text = preg_replace_callback('|\#([a-zA-Z])([0-9]+)([a-zA-Z]{1})\#|', '_aw_alias_link', $text);
+
  
   // then run another pass over the html (twice), removing unwanted attributes
 
@@ -303,7 +304,7 @@ function _aw_migrate_clean_text($text, $oid = NULL) {
 //      '#\#link([0-9]+)(.*)\##e' => "('[[link $1]]')",
     );
     
-    $text = preg_replace(array_keys($preg_replace_map), array_values($preg_replace_map), $text);
+    $text = ereg_replace(array_keys($preg_replace_map), array_values($preg_replace_map), $text);
 
     // Allowing all HTML tags except html, body, div, span, fieldset, form, input, select, textarea, label, legend, font
     // pre is now allowed because of MSWord dumps
@@ -362,6 +363,7 @@ function _aw_migrate_clean_text($text, $oid = NULL) {
     );
   
     $text = str_replace(array_keys($replace_map), array_values($replace_map), $text);
+
 
     return $text;
 
