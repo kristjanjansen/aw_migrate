@@ -280,13 +280,26 @@ function _aw_get_uid($user_name) {
 
 }
 
-function _aw_alias_link($matches) {
-  return '[[['.print_r($matches).']]]';
+function _aw_alias_link($matches, $oid) {
+  return print_r($oid);
+}
+
+class aliasProcessor {
+  public $oid = NULL;
+  public function process($matches) {
+    print_r($this->oid);
+    print_r($matches);
+  }
 }
 
 function _aw_migrate_clean_text($text, $oid = NULL) {   
-
-  $text = preg_replace_callback('|\#([a-zA-Z])([0-9]+)([a-zA-Z]{1})\#|', '_aw_alias_link', $text);
+  $ap = new aliasProcessor();
+  $ap->oid = $oid;
+  $text = preg_replace_callback(
+    '|\#([a-zA-Z]+)([0-9]+)([a-zA-Z]{0,1})\#|', 
+    array($ap, 'process'),
+    $text
+    );
 
  
   // then run another pass over the html (twice), removing unwanted attributes
