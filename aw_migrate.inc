@@ -198,7 +198,7 @@ class AWDocMigration extends Migration {
       ->fields('aw_d', array('content'))
       ->condition('aw_o.class_id', 7)
       ->orderBy('aw_o.modified', 'DESC');
-        
+   
     $this->source = new MigrateSourceSQL($query, array(), NULL, array('map_joinable' => FALSE));           
 
     $this->destination = new MigrateDestinationNode('article');
@@ -217,7 +217,7 @@ class AWDocMigration extends Migration {
     $this->addFieldMapping('nid', 'oid');
     $this->addFieldMapping('is_new')->defaultValue(TRUE);
     $this->addFieldMapping('uid', 'uid')->defaultValue(1);
-    $this->addFieldMapping('title', 'name');
+    $this->addFieldMapping('title', 'title');
     $this->addFieldMapping('created', 'created');
     $this->addFieldMapping('changed', 'modified');
     $this->addFieldMapping('body', 'body')->arguments(array('format' => 'full_html'));
@@ -241,7 +241,8 @@ class AWDocMigration extends Migration {
      $current_row->uid = _aw_get_uid($current_row->createdby);
      //   $current_row->body =  $current_row->content;
 
-  $current_row->body =  _aw_migrate_clean_text($current_row->content, $current_row->oid) . '\n---\n' . $current_row->content;
+    $current_row->title = _aw_migrate_clean_text($current_row->name);
+    $current_row->body =  _aw_migrate_clean_text($current_row->content, $current_row->oid) . '---' . $current_row->content;
   
   
      /*
@@ -280,15 +281,94 @@ function _aw_get_uid($user_name) {
 
 }
 
-function _aw_alias_link($matches, $oid) {
-  return print_r($oid);
-}
 
 class aliasProcessor {
   public $oid = NULL;
   public function process($matches) {
-    print_r($this->oid);
-    print_r($matches);
+ 
+ // Done: link, file, pict
+ // @TODO layout, document, sitemap, s
+ // minigalerii, list, webform, bannerplace, forum, poll, event_webview
+ 
+    switch ($matches[1]) {
+
+      case 'file':
+ 
+        $connection = Database::getConnection('default', 'aw');
+        $query = $connection->query(
+          'SELECT aw_a.target AS target, aw_f.file AS file  
+          FROM {aliases} aw_a 
+          LEFT OUTER JOIN {files} aw_f ON aw_a.target = aw_f.id 
+          WHERE aw_a.source = :source AND aw_a.idx = :idx AND aw_a.type = :type',
+          array(
+            ':source' => $this->oid, 
+            ':idx' => $matches[2],
+            ':type' => 41
+            )
+          );
+
+        foreach ($query as $result) {
+          $target = $result->target;
+          $file = variable_get('aw_file_path', '') . basename($result->file);
+        }   
+
+        $output = l($file, $file);
+        break;
+        
+      case 'pict':
+ 
+        $connection = Database::getConnection('default', 'aw');
+        $query = $connection->query(
+          'SELECT aw_a.target AS target, aw_i.file AS file  
+          FROM {aliases} aw_a 
+          LEFT OUTER JOIN {images} aw_i ON aw_a.target = aw_i.id 
+          WHERE aw_a.source = :source AND aw_a.idx = :idx AND aw_a.type = :type',
+          array(
+            ':source' => $this->oid, 
+            ':idx' => $matches[2],
+            ':type' => 6
+            )
+          );
+
+        foreach ($query as $result) {
+          $target = $result->target;
+          $file = variable_get('aw_file_path', '') . basename($result->file);
+        }   
+
+        $output = l($file, $file);
+        break;
+ 
+        case 'link':
+
+          $connection = Database::getConnection('default', 'aw');
+          $query = $connection->query(
+            'SELECT aw_a.target AS target, aw_e.url AS url, aw_e.name AS name  
+            FROM {aliases} aw_a 
+            LEFT OUTER JOIN {extlinks} aw_e ON aw_a.target = aw_e.id 
+            WHERE aw_a.source = :source AND aw_a.idx = :idx AND aw_a.type = :type',
+            array(
+              ':source' => $this->oid, 
+              ':idx' => $matches[2],
+              ':type' => 21
+              )
+            );
+
+          foreach ($query as $result) {
+            $target = $result->target;
+            $url = $result->url;
+            $name = $result->name;
+          }   
+
+          $output = l($name ? $name : $url, $url);
+          break;      
+   
+      default:
+        $output = $matches[0]; // Pass through
+        break;
+    }
+    
+   // print $matches[1].' ';
+    return $output;
   }
 }
 
@@ -299,28 +379,15 @@ function _aw_migrate_clean_text($text, $oid = NULL) {
     '|\#([a-zA-Z]+)([0-9]+)([a-zA-Z]{0,1})\#|', 
     array($ap, 'process'),
     $text
-    );
+  );
 
- 
-  // then run another pass over the html (twice), removing unwanted attributes
-
-  $text = str_replace(array('<BR>', '<br>', '</P>', '</p>', '</PRE>', '</pre>'), "\n", $text);
-    
-    $preg_replace_map = array(
-      '#<span style=\"font-weight: bold;\">(.*)</span>#e' => "('<strong>$1</strong>')",
-      '#<!--(.*)-->#e' => '',
-      '#<?(.*)>#e' => '',
-      '#<strong>([\s]+)</strong>#e' => '',
-
-//     '#\#file([0-9]+)(.*)\##e' => "('[[file $1]]')",
-//      '#\#pict([0-9]+)(.*)\##e' => "('[[pict $1]]')",
-//      '#\#link([0-9]+)(.*)\##e' => "('[[link $1]]')",
-    );
-    
+   $text = str_replace(array('<BR>', '<br>', '</P>', '</p>', '</PRE>', '</pre>'), "\n", $text);
+   $text = str_replace(array('<P>','<p>'), '', $text);
+        
     $text = ereg_replace(array_keys($preg_replace_map), array_values($preg_replace_map), $text);
 
     // Allowing all HTML tags except html, body, div, span, fieldset, form, input, select, textarea, label, legend, font
-    // pre is now allowed because of MSWord dumps
+    // pre is not allowed because of MSWord dumps
    
     $allowed_tags = array(
       'applet','object','iframe','h1','h2','h3','h4','h5','h6',
@@ -353,11 +420,13 @@ function _aw_migrate_clean_text($text, $oid = NULL) {
       '&ndash;' => '-',
       '&rsquo;' => "'",
       '&lsquo;' => "'",
+      '&quot;' => '"',
       '&ldquo;' => '"',
       '&rdquo;' => '"',
       '&bdquo;' => '"',
       '&#8222;' => '"',
       '&#8220;' => '"',
+      '&#8221;' => '"',
       '&acute;' => '´',
       '&Scaron;' => 'Š',
       '&scaron;' => 'Š',
@@ -366,13 +435,17 @@ function _aw_migrate_clean_text($text, $oid = NULL) {
       '&otilde;' => 'õ',
       '&Auml;' => 'Ä',
       '&auml;' => 'ä',
-      '&Ouml;' => 'Ö',
       '&ouml;' => 'Ö',
-      '&Uuml;' => 'Ü',
+      '&Ouml;' => 'Ö',
       '&uuml;' => 'ü',
+      '&Uuml;' => 'Ü',
       '&#8722;' => '−',
+      '&#8211;' => '–',
       '<A ' => '<a ',
       '</A>' => '</a>',
+      '«' => '"',
+      '»' => '"',
+      
     );
   
     $text = str_replace(array_keys($replace_map), array_values($replace_map), $text);
@@ -388,8 +461,7 @@ function _aw_copy_file($file_path, $target_dir) {
   if (variable_get('aw_file_path', '')) {
     $file = basename($file_path);
     $web_file_fullpath = variable_get('aw_file_path', '') . $file;
-    print_r($web_file_fullpath).'|';
-    $web_file = file_get_contents($web_file_fullpath);
+      $web_file = file_get_contents($web_file_fullpath);
     file_unmanaged_save_data($web_file, $target_dir . '/' . $file, 'FILE_EXISTS_REPLACE');
   }
 }
