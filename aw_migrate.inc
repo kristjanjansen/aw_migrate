@@ -296,9 +296,10 @@ class aliasProcessor {
  
         $connection = Database::getConnection('default', 'aw');
         $query = $connection->query(
-          'SELECT aw_a.target AS target, aw_f.file AS file  
+          'SELECT aw_f.file AS file, aw_o.name AS name, aw_o.comment AS comment   
           FROM {aliases} aw_a 
           LEFT OUTER JOIN {files} aw_f ON aw_a.target = aw_f.id 
+          LEFT OUTER JOIN {objects} aw_o ON aw_a.target = aw_o.oid 
           WHERE aw_a.source = :source AND aw_a.idx = :idx AND aw_a.type = :type',
           array(
             ':source' => $this->oid, 
@@ -308,18 +309,19 @@ class aliasProcessor {
           );
 
         foreach ($query as $result) {
-          $target = $result->target;
+          $name = $result->name;
+          $comment = $result->comment;
           $file = variable_get('aw_file_path', '') . basename($result->file);
         }   
 
-        $output = l($file, $file);
+        $output = l($name ? $name : $file, $file);
         break;
         
       case 'pict':
  
         $connection = Database::getConnection('default', 'aw');
         $query = $connection->query(
-          'SELECT aw_a.target AS target, aw_i.file AS file  
+          'SELECT aw_i.file AS file  
           FROM {aliases} aw_a 
           LEFT OUTER JOIN {images} aw_i ON aw_a.target = aw_i.id 
           WHERE aw_a.source = :source AND aw_a.idx = :idx AND aw_a.type = :type',
@@ -331,11 +333,10 @@ class aliasProcessor {
           );
 
         foreach ($query as $result) {
-          $target = $result->target;
           $file = variable_get('aw_file_path', '') . basename($result->file);
         }   
 
-        $output = l($file, $file);
+        $output = l($name ? $name : $file, $file);
         break;
  
         case 'link':
@@ -359,7 +360,7 @@ class aliasProcessor {
             $name = $result->name;
           }   
 
-          $output = l($name ? $name : $url, $url);
+          $output = l($name ? $name : $url, $url); // @TODO if no name in extlinks table, try objects
           break;      
    
       default:
@@ -384,8 +385,6 @@ function _aw_migrate_clean_text($text, $oid = NULL) {
    $text = str_replace(array('<BR>', '<br>', '</P>', '</p>', '</PRE>', '</pre>'), "\n", $text);
    $text = str_replace(array('<P>','<p>'), '', $text);
         
-    $text = ereg_replace(array_keys($preg_replace_map), array_values($preg_replace_map), $text);
-
     // Allowing all HTML tags except html, body, div, span, fieldset, form, input, select, textarea, label, legend, font
     // pre is not allowed because of MSWord dumps
    
@@ -431,6 +430,7 @@ function _aw_migrate_clean_text($text, $oid = NULL) {
       '&Scaron;' => 'Š',
       '&scaron;' => 'Š',
       'ð' => 'ž',
+      '¸' => 'ž',
       '&Otilde;' => 'Õ',
       '&otilde;' => 'õ',
       '&Auml;' => 'Ä',
