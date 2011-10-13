@@ -159,7 +159,7 @@ class AWDocMigration extends Migration {
     $query->leftJoin('documents', 'aw_d', 'aw_o.oid = aw_d.docid');
     
     $query
-      ->fields('aw_o', array('oid', 'name', 'createdby', 'created', 'modified', 'status'))
+      ->fields('aw_o', array('oid', 'name', 'createdby', 'created', 'modified', 'status', 'alias'))
       ->fields('aw_d', array('content'))
       ->condition('aw_o.class_id', 7)
       ->orderBy('aw_o.modified', 'DESC');
@@ -185,6 +185,7 @@ class AWDocMigration extends Migration {
     $this->addFieldMapping('title', 'title');
     $this->addFieldMapping('created', 'created');
     $this->addFieldMapping('changed', 'modified');
+    $this->addFieldMapping('path', 'alias');
     $this->addFieldMapping('body', 'body')->arguments(array('format' => 'full_html'));
 
 /*    
@@ -275,7 +276,8 @@ class aliasProcessor {
       foreach ($query as $result) {
         $filename = basename($result->file);
       }   
-
+      
+      
       $query = db_query(
         'SELECT fid  
         FROM {file_managed}  
@@ -288,8 +290,11 @@ class aliasProcessor {
       foreach ($query as $result) {
         $fid = $result->fid;
       }
-      
-      $output = $fid ? file_view(file_load($fid)) : $matches[0];
+      if ($fid) {
+        $output = $filename; // @TODO figure out the proper link
+      } else {
+        $output = $matches[0];
+      }
        
       break;
       
@@ -372,7 +377,6 @@ class aliasProcessor {
         break;
     }
     
-   // print $matches[1].' ';
     return $output;
   }
 }
@@ -459,15 +463,4 @@ function _aw_migrate_clean_text($text, $oid = NULL) {
 
     return $text;
 
-}
-
-
-
-function _aw_copy_file($file_path, $target_dir) {
-  if (variable_get('aw_file_path', '')) {
-    $file = basename($file_path);
-    $web_file_fullpath = variable_get('aw_file_path', '') . $file;
-      $web_file = file_get_contents($web_file_fullpath);
-    file_unmanaged_save_data($web_file, $target_dir . '/' . $file, 'FILE_EXISTS_REPLACE');
-  }
 }
