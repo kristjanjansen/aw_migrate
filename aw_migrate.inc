@@ -82,12 +82,12 @@ class AWImageMigration extends Migration {
   public function prepareRow($current_row) {
 
     $current_row->uid = _aw_get_uid($current_row->createdby);
- 
+    $current_row->uri = variable_get('aw_domain', '') . 'orb.aw/class=image/action=show/fastcall=1/file=' . basename($current_row->file);
     $current_row->uri = 'http://localhost/sites/aw_test/sites/default/files/aw_files/' . basename($current_row->file);
-  
   }
 
 }
+
 
 
 class AWFileMigration extends Migration {
@@ -97,12 +97,6 @@ class AWFileMigration extends Migration {
     $this->dependencies = array('AWUser');
     
     parent::__construct();
-    
-    $dir = 'public://aw_files';
-    
-    if (!file_prepare_directory($dir)) {
-      drupal_mkdir($dir);
-    }
     
     $connection = Database::getConnection('default', variable_get('aw_migrate_db', 'aw'));
     
@@ -117,47 +111,35 @@ class AWFileMigration extends Migration {
       ->orderBy('aw_o.modified', 'DESC');
              
     $this->source = new MigrateSourceSQL($query, array(), NULL, array('map_joinable' => FALSE));           
-    $this->destination = new MigrateDestinationNode('article');
+    $this->destination = new MigrateDestinationFile(array('copy_file' => TRUE));
  
     $this->map = new MigrateSQLMap($this->machineName,
         array(
-          'oid' => array('type' => 'int',
-                        'unsigned' => TRUE,
-                        'not null' => TRUE,
-                        )
+          'oid' => array(
+            'type' => 'int',
+            'unsigned' => TRUE,
+            'not null' => TRUE,
+          )
         ),
-        MigrateDestinationNode::getKeySchema()
+        MigrateDestinationFile::getKeySchema()
       );
   
-    $this->addFieldMapping('nid', 'oid');
-    $this->addFieldMapping('is_new')->defaultValue(TRUE);
     $this->addFieldMapping('uid', 'uid')->defaultValue(1);
-    $this->addFieldMapping('title', 'name');
-    $this->addFieldMapping('created', 'created');
+    $this->addFieldMapping('timestamp', 'created');
     $this->addFieldMapping('changed', 'modified');
-
-    $associated_file_arguments = MigrateFileFieldHandler::arguments(variable_get('file_public_path', conf_path() . '/files') . '/aw_files', 'file_copy', FILE_EXISTS_REPLACE, NULL, 2, 1, NULL, NULL, ';');
-    
-     $this->addFieldMapping('field_file', 'files')
-       ->separator('|')
-       ->arguments($associated_file_arguments);
+    $this->addFieldMapping('uri', 'uri');
 
     }
 
   public function prepareRow($current_row) {
- 
-    $current_row->uid = _aw_get_uid($current_row->createdby);
-  
-    $current_row->files = basename($current_row->file);
-    
-    if (variable_get('aw_file_copy', FALSE)) {
-      _aw_copy_file($current_row->file, 'public://aw_files');
-    } 
 
-  }
+    $current_row->uid = _aw_get_uid($current_row->createdby);
+    $current_row->uri = variable_get('aw_domain', '') . 'orb.aw/class=file/action=preview/id='. $current_row->oid . '/' . basename($current_row->file);
+    $current_row->uri = 'http://localhost/sites/aw_test/sites/default/files/aw_files/' . basename($current_row->file);
 
 }
 
+}
 
 
 
@@ -277,29 +259,40 @@ class aliasProcessor {
 
       case 'file':
  
-        $connection = Database::getConnection('default', 'aw');
-        $query = $connection->query(
-          'SELECT aw_f.file AS file, aw_o.name AS name, aw_o.comment AS comment   
-          FROM {aliases} aw_a 
-          LEFT OUTER JOIN {files} aw_f ON aw_a.target = aw_f.id 
-          LEFT OUTER JOIN {objects} aw_o ON aw_a.target = aw_o.oid 
-          WHERE aw_a.source = :source AND aw_a.idx = :idx AND aw_a.type = :type',
-          array(
-            ':source' => $this->oid, 
-            ':idx' => $matches[2],
-            ':type' => 41
-            )
-          );
+      $connection = Database::getConnection('default', 'aw');
+      $query = $connection->query(
+        'SELECT aw_f.file AS file  
+        FROM {aliases} aw_a 
+        LEFT OUTER JOIN {files} aw_f ON aw_a.target = aw_f.id 
+        WHERE aw_a.source = :source AND aw_a.idx = :idx AND aw_a.type = :type',
+        array(
+          ':source' => $this->oid, 
+          ':idx' => $matches[2],
+          ':type' => 41
+          )
+        );
 
-        foreach ($query as $result) {
-          $name = $result->name;
-          $comment = $result->comment;
-          $file = variable_get('aw_file_path', '') . basename($result->file);
-        }   
+      foreach ($query as $result) {
+        $filename = basename($result->file);
+      }   
 
-        $output = l($name ? $name : $file, $file);
-        break;
-        
+      $query = db_query(
+        'SELECT fid  
+        FROM {file_managed}  
+        WHERE filename = :filename',
+        array(
+          ':filename' => $filename, 
+          )
+        );
+
+      foreach ($query as $result) {
+        $fid = $result->fid;
+      }
+      
+      $output = $fid ? file_view(file_load($fid)) : $matches[0];
+       
+      break;
+      
       case 'pict':
  
         $connection = Database::getConnection('default', 'aw');
@@ -316,10 +309,37 @@ class aliasProcessor {
           );
 
         foreach ($query as $result) {
-          $file = variable_get('aw_file_path', '') . basename($result->file);
+          $filename = basename($result->file);
         }   
 
-        $output = '<img src="'.$file.'" /><br />' . l($name ? $name : $file, $file) .' ';
+        $query = db_query(
+          'SELECT fid  
+          FROM {file_managed}  
+          WHERE filename = :filename',
+          array(
+            ':filename' => $filename, 
+            )
+          );
+ 
+        foreach ($query as $result) {
+          $fid = $result->fid;
+        }
+        
+        $image_info = array(
+          'type' => 'media',
+          'view_mode' => 'media_large',
+          'fid' => $fid,
+          'attributes' => array(
+            'alt' => '',
+            'title' => '',
+            'class' => 'media-image',
+            'typeof' => 'foaf:Image',
+            'wysiwyg' => 1,
+          ),
+        );
+        
+        $output = $fid ? '[[' . drupal_json_encode($image_info) . ']]' : $matches[0];
+         
         break;
  
         case 'link':
@@ -358,6 +378,7 @@ class aliasProcessor {
 }
 
 function _aw_migrate_clean_text($text, $oid = NULL) {   
+    
   $ap = new aliasProcessor();
   $ap->oid = $oid;
   $text = preg_replace_callback(
@@ -366,15 +387,15 @@ function _aw_migrate_clean_text($text, $oid = NULL) {
     $text
   );
 
-   $text = str_replace(array('<BR>', '<br>', '</P>', '</p>', '</PRE>', '</pre>'), "\n", $text);
-   $text = str_replace(array('<P>','<p>'), '', $text);
+//   $text = str_replace(array('<BR>', '<br>', '</P>', '</p>', '</PRE>', '</pre>'), "\n", $text);
+//   $text = str_replace(array('<P>','<p>'), '', $text);
         
     // Allowing all HTML tags except html, body, div, span, fieldset, form, input, select, textarea, label, legend, font
     // pre is not allowed because of MSWord dumps
    
     $allowed_tags = array(
       'applet','object','iframe','h1','h2','h3','h4','h5','h6',
-      'p','blockquote','a','abbr','acronym','address','big','cite','code',
+      'p','br','blockquote','a','abbr','acronym','address','big','cite','code',
       'del','dfn','em','img','ins','kbd','q','s','samp','small','strike',
       'strong','sub','sup','tt','var','b','u','i','center','dl','dt','dd','ol',
       'ul','li', 'table','caption','tbody','tfoot','thead','tr','th','td'
@@ -389,8 +410,8 @@ function _aw_migrate_clean_text($text, $oid = NULL) {
       '</u></strong>' => '</h3>',
       '<i>' => '<em>',
       '</i>' => '</em>',
-      '<P>' => '',
-      '<p>' => '',
+//      '<P>' => '',
+//      '<p>' => '',
       '<STRONG>' => '<strong>',
       '</STRONG>' => '</strong>',
       '<b>' => '<strong>',
@@ -399,6 +420,7 @@ function _aw_migrate_clean_text($text, $oid = NULL) {
       '<strong></strong>' => '',
       '<p></p>' => '',
       '<p><br />' => '<p>',
+      '<br /><br />' => '<p />',
       'target="_blank" ' => '',
       '&ndash;' => '-',
       '&rsquo;' => "'",
