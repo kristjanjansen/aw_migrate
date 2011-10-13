@@ -2,5 +2,6 @@ name = "AW Migrate"
 description = ""
 core = 7.x
 dependencies[] = migrate
+dependencies[] = migrate_extras
 files[] = aw_migrate.module
 files[] = aw_migrate.inc

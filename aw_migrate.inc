@@ -46,12 +46,6 @@ class AWImageMigration extends Migration {
     
     parent::__construct();
     
-    $dir = 'public://aw_images';
-    
-    if (!file_prepare_directory($dir)) {
-      drupal_mkdir($dir);
-    }
-    
     $connection = Database::getConnection('default', variable_get('aw_migrate_db', 'aw'));
     
     $query = $connection->select('objects', 'aw_o');
@@ -65,30 +59,23 @@ class AWImageMigration extends Migration {
       ->orderBy('aw_o.modified', 'DESC');
              
     $this->source = new MigrateSourceSQL($query, array(), NULL, array('map_joinable' => FALSE));           
-    $this->destination = new MigrateDestinationNode('article');
+    $this->destination = new MigrateDestinationFile(array('copy_file' => TRUE));
  
     $this->map = new MigrateSQLMap($this->machineName,
         array(
-          'oid' => array('type' => 'int',
-                        'unsigned' => TRUE,
-                        'not null' => TRUE,
-                        )
+          'oid' => array(
+            'type' => 'int',
+            'unsigned' => TRUE,
+            'not null' => TRUE,
+          )
         ),
-        MigrateDestinationNode::getKeySchema()
+        MigrateDestinationFile::getKeySchema()
       );
   
-    $this->addFieldMapping('nid', 'oid');
-    $this->addFieldMapping('is_new')->defaultValue(TRUE);
     $this->addFieldMapping('uid', 'uid')->defaultValue(1);
-    $this->addFieldMapping('title', 'name');
-    $this->addFieldMapping('created', 'created');
+    $this->addFieldMapping('timestamp', 'created');
     $this->addFieldMapping('changed', 'modified');
-
-    $associated_file_arguments = MigrateFileFieldHandler::arguments(variable_get('file_public_path', conf_path() . '/files') . '/aw_images', 'file_copy', FILE_EXISTS_REPLACE, NULL, 2, 1, NULL, NULL, ';');
-    
-     $this->addFieldMapping('field_image', 'images')
-       ->separator('|')
-       ->arguments($associated_file_arguments);
+    $this->addFieldMapping('uri', 'uri');
 
     }
 
@@ -96,11 +83,7 @@ class AWImageMigration extends Migration {
 
     $current_row->uid = _aw_get_uid($current_row->createdby);
  
-    $current_row->images = basename($current_row->file);
- 
-    if (variable_get('aw_file_copy', FALSE)) {
-      _aw_copy_file($current_row->file, 'public://aw_images');
-    } 
+    $current_row->uri = 'http://localhost/sites/aw_test/sites/default/files/aw_files/' . basename($current_row->file);
   
   }
 
