@@ -287,7 +287,7 @@ class aliasProcessor {
   public function process($matches) {
  
  // Done: link, file, pict
- // @TODO layout, document, sitemap, s
+ // @TODO layout, document (7), sitemap, s
  // minigalerii, list, webform, bannerplace, forum, poll, event_webview
  
     switch ($matches[1]) {
@@ -336,7 +336,7 @@ class aliasProcessor {
           $file = variable_get('aw_file_path', '') . basename($result->file);
         }   
 
-        $output = l($name ? $name : $file, $file);
+        $output = '<img src="'.$file.'" /><br />' . l($name ? $name : $file, $file) .' ';
         break;
  
         case 'link':
@@ -362,7 +362,8 @@ class aliasProcessor {
 
           $output = l($name ? $name : $url, $url); // @TODO if no name in extlinks table, try objects
           break;      
-   
+
+  
       default:
         $output = $matches[0]; // Pass through
         break;
