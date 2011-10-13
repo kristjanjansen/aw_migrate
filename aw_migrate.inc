@@ -82,7 +82,7 @@ class AWImageMigration extends Migration {
   public function prepareRow($current_row) {
 
     $current_row->uid = _aw_get_uid($current_row->createdby);
-    $current_row->uri = variable_get('aw_domain', '') . 'orb.aw/class=image/action=show/fastcall=1/file=' . basename($current_row->file);
+    $current_row->uri = variable_get('aw_domain', '') . '/orb.aw/class=image/action=show/fastcall=1/file=' . basename($current_row->file);
     $current_row->uri = 'http://localhost/sites/aw_test/sites/default/files/aw_files/' . basename($current_row->file);
   }
 
@@ -134,7 +134,7 @@ class AWFileMigration extends Migration {
   public function prepareRow($current_row) {
 
     $current_row->uid = _aw_get_uid($current_row->createdby);
-    $current_row->uri = variable_get('aw_domain', '') . 'orb.aw/class=file/action=preview/id='. $current_row->oid . '/' . basename($current_row->file);
+    $current_row->uri = variable_get('aw_domain', '') . '/orb.aw/class=file/action=preview/id='. $current_row->oid . '/' . basename($current_row->file);
     $current_row->uri = 'http://localhost/sites/aw_test/sites/default/files/aw_files/' . basename($current_row->file);
 
 }
@@ -188,47 +188,20 @@ class AWDocMigration extends Migration {
     $this->addFieldMapping('path', 'alias');
     $this->addFieldMapping('body', 'body')->arguments(array('format' => 'full_html'));
 
-/*    
-    if (module_exists('node_reference')) {
-      $this->addFieldMapping('field_reference_image', 'reference_image')
-      ->separator('|');
-    }
-
-    if (module_exists('node_reference')) {
-      $this->addFieldMapping('field_reference_file', 'reference_image')
-      ->separator('|');
-    }
-*/
-
   }
 
   public function prepareRow($current_row) {
 
-     $current_row->uid = _aw_get_uid($current_row->createdby);
-     //   $current_row->body =  $current_row->content;
+    $current_row->uid = _aw_get_uid($current_row->createdby);
 
     $current_row->title = _aw_migrate_clean_text($current_row->name);
     $current_row->body =  _aw_migrate_clean_text($current_row->content, $current_row->oid) . '---' . $current_row->content;
   
-  
-     /*
-     $aliases = array();$a = array();
- 
-     $connection = Database::getConnection('default', 'aw');
-
-     $query = $connection->select('aliases', 'aw_a');
-
-     $query->fields('aw_a', array('source', 'target', 'type', 'idx'))
-          ->condition('source', $current_row->oid)
-          ->execute();
-
-        $q = $query->countQuery()->execute()->fetchField();
-    print_r($query);   
-     $current_row->body = implode('|', $a) . $current_row->body;
-     */
-   
    }
 }
+
+
+// @TODO move these utility functions below to separate inc file
 
 function _aw_get_uid($user_name) {
   
