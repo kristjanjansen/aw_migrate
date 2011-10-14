@@ -83,7 +83,7 @@ class AWImageMigration extends Migration {
 
     $current_row->uid = _aw_get_uid($current_row->createdby);
     $current_row->uri = variable_get('aw_domain', '') . '/orb.aw/class=image/action=show/fastcall=1/file=' . basename($current_row->file);
-    $current_row->uri = 'http://localhost/sites/aw_test/sites/default/files/aw_files/' . basename($current_row->file);
+    // $current_row->uri = 'http://localhost/sites/aw_test/sites/default/files/aw_files/' . basename($current_row->file);
   }
 
 }
@@ -135,7 +135,7 @@ class AWFileMigration extends Migration {
 
     $current_row->uid = _aw_get_uid($current_row->createdby);
     $current_row->uri = variable_get('aw_domain', '') . '/orb.aw/class=file/action=preview/id='. $current_row->oid . '/' . basename($current_row->file);
-    $current_row->uri = 'http://localhost/sites/aw_test/sites/default/files/aw_files/' . basename($current_row->file);
+    // $current_row->uri = 'http://localhost/sites/aw_test/sites/default/files/aw_files/' . basename($current_row->file);
 
 }
 
