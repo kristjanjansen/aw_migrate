@@ -84,6 +84,7 @@ class AWImageMigration extends Migration {
     $current_row->uid = _aw_get_uid($current_row->createdby);
     $current_row->uri = variable_get('aw_domain', '') . '/orb.aw/class=image/action=show/fastcall=1/file=' . basename($current_row->file);
     // $current_row->uri = 'http://localhost/sites/aw_test/sites/default/files/aw_files/' . basename($current_row->file);
+    print_r($current_row->uri);
   }
 
 }
@@ -196,7 +197,9 @@ class AWDocMigration extends Migration {
 
     $current_row->title = _aw_migrate_clean_text($current_row->name);
     $current_row->body =  _aw_migrate_clean_text($current_row->content, $current_row->oid) 
-    ; // . '---' . $current_row->content;
+   
+    // Enable for debugging
+    // $current_row->body =  _aw_migrate_clean_text($current_row->content, $current_row->oid). '<br />-------<br />' . $current_row->content;  
   
    }
 }
