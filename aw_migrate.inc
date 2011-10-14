@@ -195,7 +195,8 @@ class AWDocMigration extends Migration {
     $current_row->uid = _aw_get_uid($current_row->createdby);
 
     $current_row->title = _aw_migrate_clean_text($current_row->name);
-    $current_row->body =  _aw_migrate_clean_text($current_row->content, $current_row->oid) . '---' . $current_row->content;
+    $current_row->body =  _aw_migrate_clean_text($current_row->content, $current_row->oid) 
+    ; // . '---' . $current_row->content;
   
    }
 }
