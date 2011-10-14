@@ -4,8 +4,8 @@ Module for migrating Automatweb CMS data to Drupal
 
 1. Make sure you have Drush installed http://drupal.org/project/drush
 2. Create empty database for Drupal
-3. Create another database for Automatweb, and import existing data there
-4. Download and install Drupal 7 either manually or using Drush
+3. Download and install Drupal 7 either manually or using Drush
+4. Create another database for Automatweb, and import existing data there
 5. Add following snippet to sites/default/settings.php:
 
 ```  

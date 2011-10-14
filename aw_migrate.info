@@ -5,3 +5,4 @@ dependencies[] = migrate
 dependencies[] = migrate_extras
 files[] = aw_migrate.module
 files[] = aw_migrate.inc
+files[] = aw_migrate_utils.inc
