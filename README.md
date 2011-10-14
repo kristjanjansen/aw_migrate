@@ -1,6 +1,6 @@
 Module for migrating Automatweb CMS data to Drupal
 
-# Installation:
+## Installation:
 
 1. Make sure you have Drush installed http://drupal.org/project/drush
 2. Create empty database for Drupal
@@ -17,7 +17,7 @@ $databases['aw']['default'] = array (
 );
 ```
 
-6. Run following commands inside your Drupal site root directory
+...and run following commands inside your Drupal site root directory:
 
 ```
 git clone https://github.com/kristjanjansen/aw_migrate.git sites/all/modules/aw_migrate
@@ -26,7 +26,7 @@ drush vset aw_domain http://your_automatweb_site_url_without_trailing_slash
 drush mi --all
 ```
 
-7. For big sites migrating everything in one go could be very time-consuming, it might
+For big sites migrating everything in one go could be very time-consuming, it might
 be a good idea to run separate  and/or partial migrations. Run ```drush mi --help``` to find out more. 
 
 
