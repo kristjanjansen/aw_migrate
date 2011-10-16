@@ -202,4 +202,25 @@ class AWDocMigration extends Migration {
   
    }
 
+/*  
+
+   public function complete($node, $row) {
+     
+
+      $item = array(
+        'link_path' => 'node/' . $node->nid,
+        'link_title' => $node->title,
+        'mlid' => $mlid ? $mlid : NULL,
+      );
+      menu_link_save($item);
+     
+   }
+   
+   
+   public function postImport() {
+     menu_rebuild();
+   }
+
+*/
+
 }
