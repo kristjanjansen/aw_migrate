@@ -13,22 +13,35 @@ author contenti puhul (uid 1).
 tabeli nimi: aw_site_list
 
 Saidid ja nende id-d, mille content vaja I etapis üle tuua:
-```  
+
 www.ut.ee - 900
+
 www.us.ut.ee - 144
+
 www.oi.ut.ee - 434
+
 www-med.ut.ee - 190
+
 www.fl.ut.ee - 147
+
 www.kk.ut.ee - 249
+
 www.lote.ut.ee - 390
+
 www.mtk.ut.ee - 119
+
 www.math.ut.ee - 97
+
 www.sh.ut.ee - 43
+
 www.ec.ut.ee - 908
+
 www.narva.ut.ee - 286
+
 www.pc.ut.ee - 384
+
 www.kultuur.edu.ee - 343
-```  
+
 
 # Sisu hierarhia
 
@@ -83,13 +96,13 @@ data moodul millega saab feeds'iga info sisse importida hakkab d7 jaoks looma ht
 Veebivormid, mis vaja üle tuua / uuesti luua: kokku on üle saitide 172 veebivormi, neist 37 on loodud ut.ee alla. Nendest aktiivsete, ehk siis veebi kuvatavate vormide arv on kindlasti väiksem, aga selle selgitamine võtab kauem aega.
 Toon mõned näited, mis katab enamus vorme, st kui neid suudab Drupali vahenditega teha, siis teiste loomine peaks olema juba väga lihtne.
 
-
-```  
 http://www.ut.ee/1062281 - vormi id on: 1062282
+
 http://www.ut.ee/1052281 - vormi id on: 1052257
+
 http://www.ut.ee/999017 -  vormi id on 999017
+
 http://www.ut.ee/626906 - vormi id on 626906
-```  
 
 
 # Migrated object classes
