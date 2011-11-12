@@ -1,16 +1,108 @@
-# Migrated object classes
+# Kasutajanimed 
 
+tabeli nimi: ut_ldap_uid_to_aw_uid
+
+nii kasutajate kui failide / contenti migreerimise puhul
+tuleb asendada aw usernamed ldapi usernamedega. kui
+ldapi username ei ole siis vist skip (username) või default 
+author contenti puhul (uid 1).
+
+
+# Alamsaidid
+
+tabeli nimi: aw_site_list
+
+Saidid ja nende id-d, mille content vaja I etapis üle tuua:
+
+www.ut.ee - 900
+www.us.ut.ee - 144
+www.oi.ut.ee - 434
+www-med.ut.ee - 190
+www.fl.ut.ee - 147
+www.kk.ut.ee - 249
+www.lote.ut.ee - 390
+www.mtk.ut.ee - 119
+www.math.ut.ee - 97
+www.sh.ut.ee - 43
+www.ec.ut.ee - 908
+www.narva.ut.ee - 286
+www.pc.ut.ee - 384
+www.kultuur.edu.ee - 343
+
+
+# Sisu hierarhia
+
+ut.ee veebis saab põhilise sisupuu kätte oid 507837 alt.
+
+Sisu on loodud peamiselt Peamenüü, ülemine menüü ja alumine menüü alla. Kuna osa saite on saanud juba uuendatud, siis neil on eraldi veel saidi nimi (uus) kaust, kus on siis uuendatud sisu.
+Kindlam on Valmarilt küsida aw access ja ise adminnipoolt seda puud vaadata
+
+
+## AW puu näitamine:
+
+kui parentil on 2+ childi
+
+ parent (oid 1) / child1 (oid 2)
+ parent (oid 1) / child2 (oid 3)
+
+siis 
+
+/1 urli all näidatakse dokumenti kus on mõlema childi pealkiri
+
+ link to /2
+ link to /1
+
+kui parentil on 1 child:
+
+ parent (oid 1) / child1 (oid 2)
+
+siis nii /1 kui /2 uril all näidatakse oid 2 contentit
+
+Drupali puhul vist ärme teeme seda trikki, oid 1 (nid 1) oleks lihtsalt tühi dokument
+ja temal oleks üks child (nid 2) mille pealkirja me näitaks menu_block.module abiga
+content regionis.
+
+
+# Autorid
+
+AWs on "created by" ja "modified by". See info peaks säilitama. Kaks varianti:
+
+a) teha migreeritavast nodest 2 versiooni, v1 uid oleks created by ja v2 uid oleks
+modified by. content oleks neil sama
+b) ei jama versioonidega (sest aws neid tegelt pole), teha cckväli "modified by" ja mingi
+hook_node_save mis seda välja uuendab.
+
+
+# Regulaane XML import
+
+data moodul millega saab feeds'iga info sisse importida hakkab d7 jaoks looma http://drupal.org/node/827000#comment-5231950
+
+
+# Veebivormid
+
+Veebivormid, mis vaja üle tuua / uuesti luua: kokku on üle saitide 172 veebivormi, neist 37 on loodud ut.ee alla. Nendest aktiivsete, ehk siis veebi kuvatavate vormide arv on kindlasti väiksem, aga selle selgitamine võtab kauem aega.
+Toon mõned näited, mis katab enamus vorme, st kui neid suudab Drupali vahenditega teha, siis teiste loomine peaks olema juba väga lihtne.
+
+http://www.ut.ee/1062281 - vormi id on: 1062282
+http://www.ut.ee/1052281 - vormi id on: 1052257
+http://www.ut.ee/999017 -  vormi id on 999017
+http://www.ut.ee/626906 - vormi id on 626906
+
+
+
+# Migrated object classes
+```  
 classes[6][def] = CL_IMAGE
-(27,850)
+(27,850) <- sql count
 
 classes[7][def] = CL_DOCUMENT
 (60,487)
 
 classes[41][def] = CL_FILE
 (30,780)
-
+```  
 # Non-migrated object classes
-
+```  
 classes[1][def] = CL_MENU
 (50,097)
 
@@ -433,11 +525,4 @@ classes[1407][def] = CL_CRM_SKILL_MANAGER
 classes[1408][def] = CL_PERSONNEL_MANAGEMENT_CV_SEARCH_SAVED
 
 1421 ???
-
-
-
-# ...
-
-SELECT * FROM  `objects` WHERE  `class_id` = 10
-
-SELECT DISTINCT class_id FROM  `objects`  LIMIT 0 , 300
+```  
